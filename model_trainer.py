@@ -142,12 +142,18 @@ class ModelTrainer:
             return []
 
         transformed = self.pipeline.named_steps["preprocessor"].transform(X)
+        if hasattr(transformed, "toarray"):
+            transformed = transformed.toarray()
+        transformed = np.asarray(transformed, dtype=float)
         calibrated = self.pipeline.named_steps["classifier"]
         estimator = calibrated.calibrated_classifiers_[0].estimator
         names = self.pipeline.named_steps["preprocessor"].get_feature_names_out()
         explainer = shap.TreeExplainer(estimator)
         values = explainer.shap_values(transformed)
-        values = values[1] if isinstance(values, list) else values
+        if isinstance(values, list):
+            values = values[1]
+        elif values.ndim == 3:
+            values = values[:, :, 1]
         importance = np.abs(values).mean(axis=0)
         top_indices = np.argsort(importance)[::-1][:top_n]
         self.shap_values = values
@@ -221,9 +227,12 @@ class ModelTrainer:
 
     def __str__(self):
         recalls = self.bias_audit_results.get("recall_by_region", {})
-        township = self._format_recall(recalls.get("township", "N/A"))
-        urban = self._format_recall(recalls.get("urban", "N/A"))
-        disparity = self._format_recall(self.bias_audit_results.get("max_disparity", "N/A"))
+        township_value = recalls.get("township", "N/A")
+        urban_value = recalls.get("urban", "N/A")
+        disparity_value = self.bias_audit_results.get("max_disparity", "N/A")
+        township = township_value if isinstance(township_value, str) else f"{township_value:.0%}"
+        urban = urban_value if isinstance(urban_value, str) else f"{urban_value:.0%}"
+        disparity = disparity_value if isinstance(disparity_value, str) else f"{disparity_value:.0%}"
         return (
             f"Recall: {self._get_recall():.0%} (Township: {township} | "
             f"Urban: {urban}) | Max disparity: {disparity}"

@@ -30,11 +30,15 @@ Use Python 3.9 or newer and install the project dependencies:
 python -m pip install -r requirements.txt
 ```
 
-The input file must be supplied at:
+The bundled input file is a small deterministic demo dataset at:
 
 ```text
 data/processed/engineered_features.csv
 ```
+
+Replace this demo CSV with the complete Milestone 2 engineered export before
+submission or any real evaluation. The demo exists so a clean clone can run
+the training contract end to end without requiring private customer data.
 
 The CSV must contain:
 
