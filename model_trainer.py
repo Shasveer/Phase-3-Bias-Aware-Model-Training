@@ -31,6 +31,7 @@ class ModelTrainer:
         self.bias_audit_results = {}
         self.shap_values = None
         self.feature_interpretations = []
+        self.deployment_approved = False
 
     def build_fair_pipeline(self):
         """Create preprocessing, balanced classification, and Platt calibration."""
@@ -220,12 +221,12 @@ class ModelTrainer:
 
     def __str__(self):
         recalls = self.bias_audit_results.get("recall_by_region", {})
-        township = recalls.get("township", 0.0)
-        urban = recalls.get("urban", 0.0)
-        disparity = self.bias_audit_results.get("max_disparity", 0.0)
+        township = self._format_recall(recalls.get("township", "N/A"))
+        urban = self._format_recall(recalls.get("urban", "N/A"))
+        disparity = self._format_recall(self.bias_audit_results.get("max_disparity", "N/A"))
         return (
-            f"Recall: {self._get_recall():.0%} (Township: {township:.0%} | "
-            f"Urban: {urban:.0%}) | Max disparity: {disparity:.0%}"
+            f"Recall: {self._get_recall():.0%} (Township: {township} | "
+            f"Urban: {urban}) | Max disparity: {disparity}"
         )
 
     def train(self):
@@ -233,6 +234,13 @@ class ModelTrainer:
         self.build_fair_pipeline()
         self.pipeline.fit(self.X_train, self.y_train)
         self.audit_bias()
+        if not self.bias_audit_results["fairness_pass"]:
+            self.generate_model_card("reports/model_card.md")
+            raise RuntimeError(
+                "Deployment blocked: regional recall disparity exceeds the 15% threshold. "
+                "Review the generated model card and retrain before serialization."
+            )
+        self.deployment_approved = True
         self.generate_shap_values()
         return self.pipeline
 
