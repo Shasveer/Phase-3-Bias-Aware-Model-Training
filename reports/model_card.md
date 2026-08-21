@@ -8,6 +8,8 @@
 
 ## Ethical Constraints
 ⚠️ NEVER use for automatic loan denial
+- Deployment status: DEPLOYABLE
+- A failed fairness audit is a deployment gate; do not serialize or deploy this model.
 - Human review is required for every high-risk prediction.
 - This model must not be used to exclude, price, or deny financial services.
 

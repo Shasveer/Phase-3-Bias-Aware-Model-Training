@@ -200,6 +200,8 @@ class ModelTrainer:
 
 ## Ethical Constraints
 {MODEL_CARD_WARNING}
+- Deployment status: {"DEPLOYABLE" if self.deployment_approved and self.bias_audit_results.get("fairness_pass") else "NOT DEPLOYABLE - fairness audit failed"}
+- A failed fairness audit is a deployment gate; do not serialize or deploy this model.
 - Human review is required for every high-risk prediction.
 - This model must not be used to exclude, price, or deny financial services.
 
@@ -273,6 +275,8 @@ def main():
     trainer = ModelTrainer(frame.drop(columns=[target]), frame[target])
     trainer.train()
     trainer.generate_model_card("reports/model_card.md")
+    if not trainer.deployment_approved:
+        raise RuntimeError("Deployment blocked: fairness audit did not pass")
     Path("models").mkdir(parents=True, exist_ok=True)
     with open("models/churn_pipeline.pkl", "wb") as artifact:
         pickle.dump(trainer.pipeline, artifact)
